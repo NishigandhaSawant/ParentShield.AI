@@ -10,6 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LessonsPage from './pages/Learninglessons';
 import TransactionFraud from './pages/TransactionFraud';
 import MessageFraud from './pages/MessageFraud';
+import FeedbackDashboard from './pages/feedback';
 
 function AppContent() {
   const { isDark } = useTheme();
@@ -19,6 +20,7 @@ function AppContent() {
       <Router>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/feedback" element={ <ProtectedRoute><FeedbackDashboard /> </ProtectedRoute>} />
 
           <Route path="/dashboard" element={ <ProtectedRoute><Dashboard /> </ProtectedRoute>} />
           <Route path="/lessons" element={ <ProtectedRoute><LessonsPage /> </ProtectedRoute>} />

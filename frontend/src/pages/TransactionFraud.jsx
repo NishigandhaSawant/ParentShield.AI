@@ -1,67 +1,82 @@
 import React, { useState } from "react";
-import { GridBeams } from "@/components/magicui/grid-beams";
-import Navbar from "@/components/navbar";
+import { GridBeams } from '@/components/magicui/grid-beams';
+import Navbar from '@/components/navbar';
 
-function TransactionFraud() {
-  const [formData, setFormData] = useState({
-    transaction_type: "PAYMENT",
-    amount: "",
-    current_balance: "",
-  });
+const TransactionFraud = () => {
+  const [selectedFile, setSelectedFile] = useState(null);
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setSelectedFile(file);
+    
+    if (file) {
+      setPreviewUrl(URL.createObjectURL(file));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!selectedFile) {
+      alert("Please select an image first");
+      return;
+    }
+
     setIsLoading(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
     try {
       const res = await fetch("http://localhost:8000/predict", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transaction_type: formData.transaction_type,
-          amount: parseFloat(formData.amount),
-          current_balance: parseFloat(formData.current_balance),
-        }),
+        body: formData,
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
       setResult(data);
     } catch (error) {
-      console.error("Error fetching prediction:", error);
-      setResult({ error: "Failed to analyze transaction. Please try again." });
+      console.error("Error:", error);
+      setResult({
+        error: "Failed to analyze transaction. Please try again.",
+        errorDetails: error.message
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getTransactionIcon = (type) => {
-    switch (type) {
-      case "PAYMENT": return "💳";
-      case "TRANSFER": return "🔄";
-      case "CASH_OUT": return "💸";
-      case "DEPOSIT": return "💰";
-      default: return "💳";
+  const resetForm = () => {
+    setSelectedFile(null);
+    setResult(null);
+    setPreviewUrl(null);
+  };
+
+  const getFraudStatus = () => {
+    if (!result?.fraud_analysis) return null;
+    
+    const prediction = result.fraud_analysis.verdict;
+    if (prediction === "legitimate") {
+      return { status: "safe", color: "green", icon: "✅" };
+    } else {
+      return { status: "fraud", color: "red", icon: "⚠️" };
     }
   };
 
-  const getRiskLevel = (score) => {
-    if (score >= 80) return { level: "CRITICAL", color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" };
-    if (score >= 60) return { level: "HIGH", color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" };
-    if (score >= 40) return { level: "MEDIUM", color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" };
-    if (score >= 20) return { level: "LOW", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" };
-    return { level: "MINIMAL", color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20" };
-  };
-
   return (
-    <div className="min-h-screen bg-[#020412] text-white relative overflow-hidden">
-      {/* GridBeams Background */}
+    <div className="min-h-screen" style={{ backgroundColor: '#020412' }}>
+      {/* Grid Beams Background */}
       <div className="fixed inset-0 z-0">
         <GridBeams
-          gridSize={0}
+          gridSize={60}
           gridColor="rgba(255, 255, 255, 0.2)"
           rayCount={20}
           rayOpacity={0.55}
@@ -79,204 +94,371 @@ function TransactionFraud() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500/20 rounded-full mb-4">
-              <span className="text-3xl">🔐</span>
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-              Transaction Fraud Detection
+      <div className="relative z-10">
+        {/* Header */}
+        <header className="text-center py-12 px-4 sm:py-16 lg:py-20">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 text-white">
+              Transaction Fraud
+              <br />
+              <span className="text-[#BDA7FF]">
+                Detector
+              </span>
             </h1>
-            <p className="text-white/60">Analyze transactions for potential fraud using advanced ML algorithms</p>
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+              Advanced AI-powered detection system to identify fraudulent transactions from screenshots
+            </p>
           </div>
+        </header>
 
-          {/* Form Card */}
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 md:p-8 mb-6">
+        {/* Upload Section */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-2xl p-6 sm:p-8 mb-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Transaction Type */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-white/90">
-                    Transaction Type
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="transaction_type"
-                      value={formData.transaction_type}
-                      onChange={handleChange}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                    >
-                      <option value="PAYMENT" className="bg-gray-800">💳 PAYMENT</option>
-                      <option value="TRANSFER" className="bg-gray-800">🔄 TRANSFER</option>
-                      <option value="CASH_OUT" className="bg-gray-800">💸 CASH_OUT</option>
-                      <option value="DEPOSIT" className="bg-gray-800">💰 DEPOSIT</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <div>
+                <label
+                  htmlFor="file-upload"
+                  className="block text-sm font-medium text-gray-200 mb-2"
+                >
+                  Upload Transaction Screenshot
+                </label>
+                <div className="border-2 border-dashed border-white/30 rounded-xl p-8 text-center hover:border-[#BDA7FF] transition-colors duration-200 bg-white/5 hover:bg-white/10 cursor-pointer">
+                  <input
+                    id="file-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
+                      <svg
+                        className="relative w-16 h-16 text-[#BDA7FF]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
                       </svg>
                     </div>
-                  </div>
+                    <span className="text-white font-medium text-lg mb-2">
+                      Drag & drop your transaction screenshot here
+                    </span>
+                    <span className="text-gray-400 text-sm mb-6">
+                      or click to browse
+                    </span>
+                    <div className="inline-flex items-center justify-center px-6 py-3 bg-[#BDA7FF] rounded-2xl transition-all duration-200 hover:bg-[#A890E8] transform hover:scale-105">
+                      <svg className="w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="text-white font-medium">Choose File</span>
+                    </div>
+                  </label>
                 </div>
 
-                {/* Amount */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-white/90">
-                    Transaction Amount (₹)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60">₹</div>
-                    <input
-                      type="number"
-                      name="amount"
-                      value={formData.amount}
-                      onChange={handleChange}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg pl-8 pr-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      required
+                {selectedFile && (
+                  <div className="mt-4 p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <svg
+                          className="w-8 h-8 text-green-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <div>
+                          <p className="text-white font-medium">
+                            {selectedFile.name}
+                          </p>
+                          <p className="text-gray-400 text-sm">
+                            {(selectedFile.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedFile(null);
+                          setPreviewUrl(null);
+                        }}
+                        className="text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {previewUrl && (
+                  <div className="mt-4">
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="max-w-full h-auto rounded-lg shadow-lg border-2 border-white/20"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* Current Balance */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-white/90">
-                  Current Account Balance (₹)
-                </label>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60">₹</div>
-                  <input
-                    type="number"
-                    name="current_balance"
-                    value={formData.current_balance}
-                    onChange={handleChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg pl-8 pr-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button 
-                type="submit" 
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl cursor-pointer"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Analyzing...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>🔍</span>
-                    <span>Analyze Transaction</span>
-                  </>
                 )}
-              </button>
-              </form>
-            </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="submit"
+                  disabled={!selectedFile || isLoading}
+                  className="flex-1 px-8 py-3 bg-[#BDA7FF] text-white font-semibold rounded-lg shadow-md hover:bg-[#A890E8] focus:outline-none focus:ring-2 focus:ring-[#BDA7FF] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center justify-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Analyzing...
+                    </span>
+                  ) : (
+                    "Analyze Transaction"
+                  )}
+                </button>
+
+                {result && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    disabled={isLoading}
+                    className="px-8 py-3 bg-white/20 text-white font-semibold rounded-lg shadow-md hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
 
-          {/* Results Card */}
-          {result && (
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 md:p-8 animate-in slide-in-from-bottom duration-500">
-              {result.error ? (
-                <div className="text-center">
-                  <div className="text-6xl mb-4">⚠️</div>
-                  <h3 className="text-xl font-semibold text-red-400 mb-2">Analysis Failed</h3>
-                  <p className="text-white/60">{result.error}</p>
+          {isLoading && (
+            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-xl p-8 text-center">
+              <div className="flex flex-col items-center">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-blue-400/10 rounded-full blur-lg"></div>
+                  <div className="relative animate-spin rounded-full h-16 w-16 border-b-2 border-[#BDA7FF]"></div>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Header */}
-                  <div className="text-center">
-                    <div className="text-6xl mb-4">
-                      {result.fraud ? "🚨" : "🍀"}
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Analyzing Screenshot...
+                </h3>
+                <p className="text-gray-300">AI is processing your image for fraud detection</p>
+              </div>
+            </div>
+          )}
+
+          {result && result.error && (
+            <div className="bg-red-500/20 backdrop-blur-md border border-red-500/30 text-white p-6 rounded-xl flex items-center gap-4 mb-8">
+              <svg
+                className="w-6 h-6 text-red-400 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div>
+                <h3 className="text-lg font-semibold mb-1">Analysis Failed</h3>
+                <p className="text-red-100">{result.error}</p>
+                {result.errorDetails && (
+                  <p className="text-red-200 text-sm mt-2 font-mono bg-red-900/30 p-2 rounded">
+                    {result.errorDetails}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {result && result.fraud_analysis && (
+            <>
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-2xl p-6 sm:p-8 mb-6">
+                <div className="mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-black/10"></div>
+                    <div className="relative flex items-center justify-center py-6">
+                      <div className="relative">
+                        {getFraudStatus()?.status === "fraud" && (
+                          <div className="absolute inset-0 bg-red-400/30 rounded-full blur-2xl"></div>
+                        )}
+                        {getFraudStatus()?.status === "safe" && (
+                          <div className="absolute inset-0 bg-green-400/30 rounded-full blur-2xl"></div>
+                        )}
+                        <div
+                          className={`relative text-6xl ${
+                            getFraudStatus()?.status === "fraud"
+                              ? "text-red-400"
+                              : "text-green-400"
+                          }`}
+                        >
+                          {getFraudStatus()?.icon}
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="text-2xl font-bold mb-2">
-                      {result.fraud ? "Fraud Detected" : "Transaction Approved"}
+                  </div>
+
+                  <div className="text-center mb-6">
+                    <h2
+                      className={`text-3xl font-bold mb-2 ${
+                        getFraudStatus()?.status === "fraud"
+                          ? "text-red-400"
+                          : "text-green-400"
+                      }`}
+                    >
+                      {getFraudStatus()?.status === "fraud"
+                        ? "🚨 FRAUDULENT TRANSACTION DETECTED"
+                        : "✅ TRANSACTION APPEARS SAFE"}
+                    </h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                      <div className="text-gray-400 text-sm mb-1">Prediction</div>
+                      <div className="text-white text-lg font-semibold capitalize">
+                        {result.fraud_analysis.verdict}
+                      </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                      <div className="text-gray-400 text-sm mb-1">Detection Method</div>
+                      <div className="text-white text-lg font-semibold">
+                        ML Model
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+                  <div className="bg-black/30 border-l-4 border-blue-400 rounded-r-lg p-4">
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      Explanation
                     </h3>
-                    <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${getRiskLevel(result.risk_score).bg} ${getRiskLevel(result.risk_score).border} ${getRiskLevel(result.risk_score).color} border`}>
-                      Risk Level: {getRiskLevel(result.risk_score).level}
-                    </div>
-                  </div>
-
-                  {/* Risk Score */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/80">Risk Score</span>
-                      <span className={`text-xl font-bold ${getRiskLevel(result.risk_score).color}`}>
-                        {result.risk_score}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-1000 ease-out ${
-                          result.risk_score >= 80 ? 'bg-red-500' :
-                          result.risk_score >= 60 ? 'bg-orange-500' :
-                          result.risk_score >= 40 ? 'bg-yellow-500' :
-                          result.risk_score >= 20 ? 'bg-blue-500' :
-                          'bg-green-500'
-                        }`}
-                        style={{ width: `${result.risk_score}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Transaction Summary */}
-                  <div className="bg-white/5 rounded-lg p-4 space-y-3">
-                    <h4 className="font-semibold text-white/90 mb-3">Transaction Summary</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-2xl">{getTransactionIcon(formData.transaction_type)}</span>
-                        <div>
-                          <div className="text-white/60">Type</div>
-                          <div className="font-medium">{formData.transaction_type}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-2xl">💵</span>
-                        <div>
-                          <div className="text-white/60">Amount</div>
-                          <div className="font-medium">${parseFloat(formData.amount).toLocaleString()}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-2xl">🏦</span>
-                        <div>
-                          <div className="text-white/60">Balance</div>
-                          <div className="font-medium">${parseFloat(formData.current_balance).toLocaleString()}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Recommendation */}
-                  <div className={`p-4 rounded-lg border ${getRiskLevel(result.risk_score).bg} ${getRiskLevel(result.risk_score).border}`}>
-                    <h4 className="font-semibold mb-2">Recommendation</h4>
-                    <p className="text-sm text-white/80">
-                      {result.fraud 
-                        ? "This transaction shows signs of potential fraud. We recommend additional verification before processing."
-                        : "This transaction appears legitimate and can be processed safely."
-                      }
+                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {result.fraud_analysis.reasoning}
                     </p>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-2xl p-6 sm:p-8 mb-6">
+                <h3 className="text-2xl font-bold text-white mb-6">
+                  Transaction Details
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                    <div className="text-gray-400 text-sm mb-1">Amount</div>
+                    <div className="text-white text-xl font-bold">
+                      {result.transaction_details.amount ? `₹${result.transaction_details.amount.toFixed(2)}` : 'Not detected'}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                    <div className="text-gray-400 text-sm mb-1">Type</div>
+                    <div className="text-white text-lg font-semibold capitalize">
+                      {result.transaction_details.transaction_type || 'Not detected'}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                    <div className="text-gray-400 text-sm mb-1">UPI ID</div>
+                    <div className="text-white text-lg font-mono break-all">
+                      {result.transaction_details.upi_id || 'Not detected'}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                    <div className="text-gray-400 text-sm mb-1">Recipient</div>
+                    <div className="text-white text-lg font-semibold">
+                      {result.transaction_details.recipient || 'Not detected'}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                    <div className="text-gray-400 text-sm mb-1">
+                      Transaction ID
+                    </div>
+                    <div className="text-white text-sm font-mono break-all">
+                      {result.transaction_details.transaction_id || 'Not detected'}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                    <div className="text-gray-400 text-sm mb-1">Account</div>
+                    <div className="text-white text-sm font-mono">
+                      {result.transaction_details.account_number || 'Not detected'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-2xl p-6 sm:p-8">
+                <h3 className="text-2xl font-bold text-white mb-4">
+                  🔍 Extracted Text Analysis
+                </h3>
+
+                <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+                  <div className="bg-black/30 border-l-4 border-blue-400 rounded-r-lg p-4">
+                    <pre className="whitespace-pre-wrap font-mono text-sm text-gray-300 overflow-x-auto">
+                      {result.extracted_text || 'No text found in the image'}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>
+    </div>
   );
-}
+};
 
 export default TransactionFraud;
