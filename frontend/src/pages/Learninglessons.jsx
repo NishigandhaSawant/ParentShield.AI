@@ -1,5 +1,5 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '@/components/navbar';
 import { GridBeams } from '@/components/magicui/grid-beams';
 import { 
@@ -17,6 +17,7 @@ import {
   Target,
   Loader2
 } from 'lucide-react';
+import usageTracker from '@/lib/usageTracker';
 
 const LessonsPage = () => {
   const [bookmarks, setBookmarks] = useState([]);
@@ -25,10 +26,17 @@ const LessonsPage = () => {
   const [videoCompleted, setVideoCompleted] = useState(new Set());
   const [currentProgress, setCurrentProgress] = useState({});
 
+  // Track usage when lesson is actually viewed
+  const incrementUsage = () => {
+    usageTracker.incrementUsage('securityLessons');
+  };
+
   const toggleDetails = (tipId) => {
     if (modalTipId === tipId) {
       setModalTipId(null);
     } else {
+      // Increment usage counter when user actually opens a lesson
+      incrementUsage();
       setModalTipId(tipId);
       setReadTips(prev => new Set([...prev, tipId]));
     }
@@ -645,6 +653,16 @@ const LessonsPage = () => {
             </div>
           </div>
         )}
+        
+        {/* Back to Dashboard Button */}
+        <div className="text-center mt-8">
+          <Link 
+            to="/dashboard"
+            className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            ← Back to Dashboard
+          </Link>
+        </div>
       </div>
     </div>
   );

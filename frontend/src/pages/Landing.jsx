@@ -165,28 +165,6 @@ const Landing = () => {
                   </div>
                 </SignedIn>
               </div>
-
-              {/* Features */}
-              <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-8">
-                {["AI-Driven", "Real-Time Alerts", "24/7 Monitoring"].map((feature, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full border"
-                    style={{ borderColor: colors.border.secondary }}
-                  >
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: colors.status.success }}
-                    />
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: colors.text.secondary }}
-                    >
-                      {feature}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* Right Image */}

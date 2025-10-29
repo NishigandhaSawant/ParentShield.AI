@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { MessageSquare, Send, CheckCircle, AlertCircle, Star, User, Mail, MessageCircleMore } from 'lucide-react';
 import { GridBeams } from '@/components/magicui/grid-beams';
+import usageTracker from '@/lib/usageTracker';
 
 // Web3Forms Configuration
 // Get your free access key from https://web3forms.com
@@ -61,6 +63,11 @@ function FeedbackFormCard() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+
+  // Track usage when feedback is actually submitted
+  const incrementUsage = () => {
+    usageTracker.incrementUsage('userFeedback');
+  };
 
   // Real-time field validation
   const validateField = (name, value) => {
@@ -131,6 +138,9 @@ function FeedbackFormCard() {
       setIsSubmitting(false);
       return;
     }
+
+    // Increment usage counter when user actually submits feedback
+    incrementUsage();
 
     try {
       // Prepare submission data for Web3Forms
@@ -424,14 +434,11 @@ function FeedbackImpactCard() {
         </div>
       </div>
 
-      {/* Live Feedback Stats */}
+      {/* Live Feedback Stats - Removed community feedback text */}
       <div className="bg-indigo-800/30 rounded-xl p-4 backdrop-blur-sm border border-indigo-500/20">
         <div className="flex justify-between items-center">
-          <span className="text-sm text-indigo-200">Community Feedback</span>
+          <span className="text-sm text-indigo-200">Feedback Count</span>
           <span className="text-lg font-bold text-white">{stats.total}</span>
-        </div>
-        <div className="mt-2 text-xs text-indigo-300">
-          Thank you for being part of our mission! 🚀
         </div>
       </div>
     </div>
@@ -440,6 +447,11 @@ function FeedbackImpactCard() {
 
 // Main Feedback Dashboard Component
 export default function FeedbackDashboard() {
+  // Track usage when component mounts
+  useEffect(() => {
+    usageTracker.incrementUsage('userFeedback');
+  }, []);
+
   return (
     <div className="min-h-screen relative bg-[#05081A] overflow-x-hidden">
       {/* GridBeams Background */}
@@ -494,7 +506,7 @@ export default function FeedbackDashboard() {
               </div>
             </div>
 
-            {/* Support Section */}
+            {/* Support Section - Removed 24/7 availability text */}
             <div className="bg-gradient-to-br from-purple-600/90 to-pink-600/90 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-purple-400/30 hover:shadow-purple-500/20 transition-all duration-300 mb-8">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-4">
@@ -509,7 +521,7 @@ export default function FeedbackDashboard() {
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                   <span className="bg-purple-800/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium">
-                    Available 24/7
+                    Support Available
                   </span>
                 </div>
               </div>
@@ -529,27 +541,26 @@ export default function FeedbackDashboard() {
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Footer - Removed security and community text */}
         <div className="border-t border-slate-700/50 py-8">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <p className="text-slate-400 leading-relaxed mb-4">
               Your feedback is completely secure and confidential. We use it exclusively to improve ParentShield.AI 
               and create safer digital experiences for families across India.
             </p>
-            <div className="flex items-center justify-center gap-6 text-sm text-slate-500">
-              <span className="flex items-center gap-2">
-                <CheckCircle size={16} />
-                Encrypted & Secure
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-2">
-                <MessageSquare size={16} />
-                Community Driven
-              </span>
-            </div>
           </div>
+        </div>
+        
+        {/* Back to Dashboard Button */}
+        <div className="text-center mt-8">
+          <Link 
+            to="/dashboard"
+            className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            ← Back to Dashboard
+          </Link>
         </div>
       </div>
     </div>
-  );
+  );
 }

@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { GridBeams } from '@/components/magicui/grid-beams';
 import Navbar from '@/components/navbar';
+import { Link } from 'react-router-dom';
+import usageTracker from '@/lib/usageTracker';
 
 const MessageFraud = () => {
   const [result, setResult] = useState(null);
@@ -11,11 +13,19 @@ const MessageFraud = () => {
 
   const API_BASE_URL = 'http://localhost:5000/api';
 
+  // Track usage when image is actually analyzed
+  const incrementUsage = () => {
+    usageTracker.incrementUsage('messageFraud');
+  };
+
   const handleFile = async (file) => {
     if (!file || !file.type.startsWith('image/')) {
       setError('Please select a valid image file');
       return;
     }
+
+    // Increment usage counter when user actually uses the feature
+    incrementUsage();
 
     setLoading(true);
     setError(null);
@@ -285,6 +295,95 @@ const MessageFraud = () => {
                       </div>
                     </div>
                   )}
+                  
+                  {/* Link Analysis Results */}
+                  {result.fraud_analysis.link_analysis && result.fraud_analysis.link_analysis.overall && (
+                    <div className="mt-8 bg-white/20 backdrop-blur-sm rounded-xl p-6 border border-white/30">
+                      <h3 className="text-xl font-bold text-white mb-4">🔗 Link Analysis</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                        <div className="bg-white/10 rounded-lg p-3">
+                          <p className="text-sm text-white/80 mb-1">Total Links</p>
+                          <p className="text-2xl font-bold text-white">
+                            {result.fraud_analysis.link_analysis.overall.total_links}
+                          </p>
+                        </div>
+                        <div className="bg-white/10 rounded-lg p-3">
+                          <p className="text-sm text-white/80 mb-1">Suspicious Links</p>
+                          <p className={`text-2xl font-bold ${
+                            result.fraud_analysis.link_analysis.overall.suspicious_links > 0 
+                              ? 'text-red-400' 
+                              : 'text-green-400'
+                          }`}>
+                            {result.fraud_analysis.link_analysis.overall.suspicious_links}
+                          </p>
+                        </div>
+                        <div className="bg-white/10 rounded-lg p-3">
+                          <p className="text-sm text-white/80 mb-1">Risk Level</p>
+                          <p className={`text-xl font-bold ${
+                            result.fraud_analysis.link_analysis.overall.risk_level === 'high' 
+                              ? 'text-red-400' 
+                              : result.fraud_analysis.link_analysis.overall.risk_level === 'medium' 
+                                ? 'text-yellow-400' 
+                                : 'text-green-400'
+                          }`}>
+                            {result.fraud_analysis.link_analysis.overall.risk_level.charAt(0).toUpperCase() + 
+                             result.fraud_analysis.link_analysis.overall.risk_level.slice(1)}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {result.fraud_analysis.link_analysis.links && result.fraud_analysis.link_analysis.links.length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="text-lg font-semibold text-white mb-3">Analyzed Links:</h4>
+                          <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                            {result.fraud_analysis.link_analysis.links.map((link, index) => (
+                              <div 
+                                key={index} 
+                                className={`p-3 rounded-lg border ${
+                                  link.is_suspicious 
+                                    ? 'bg-red-500/20 border-red-500/50' 
+                                    : 'bg-green-500/20 border-green-500/50'
+                                }`}
+                              >
+                                <div className="flex items-start">
+                                  <span className={`mr-2 mt-1 text-lg ${
+                                    link.is_suspicious ? 'text-red-400' : 'text-green-400'
+                                  }`}>
+                                    {link.is_suspicious ? '⚠️' : '✅'}
+                                  </span>
+                                  <div className="flex-1">
+                                    <p className="text-white font-mono text-sm break-all">
+                                      {link.url}
+                                    </p>
+                                    {link.issues && link.issues.length > 0 && (
+                                      <div className="mt-2">
+                                        <p className="text-xs text-white/80 mb-1">Issues:</p>
+                                        <ul className="text-xs text-red-200 space-y-1">
+                                          {link.issues.map((issue, i) => (
+                                            <li key={i} className="flex items-start">
+                                              <span className="mr-1">•</span>
+                                              <span>{issue}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    link.is_suspicious 
+                                      ? 'bg-red-500/30 text-red-200' 
+                                      : 'bg-green-500/30 text-green-200'
+                                  }`}>
+                                    {(link.safety_score * 100).toFixed(0)}% safe
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -322,6 +421,16 @@ const MessageFraud = () => {
               )}
             </div>
           )}
+          
+          {/* Back to Dashboard Button */}
+          <div className="text-center mt-8">
+            <Link 
+              to="/dashboard"
+              className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              ← Back to Dashboard
+            </Link>
+          </div>
         </main>
       </div>
     </div>
